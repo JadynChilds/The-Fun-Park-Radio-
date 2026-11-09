@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Fun Park Radio - Head-Tilt ESL Quiz</title>
+    
+    <!-- Tailwind CSS for UI styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@400;700;900&family=Bubblegum+Sans&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- MediaPipe Camera & Face Mesh Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+    <!-- Canvas Confetti Library for Correct Answer Celebrations -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: #38bdf8;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .font-header {
+            font-family: 'Fredoka', cursive;
+        }
+
+        .font-radio {
+            font-family: 'Bubblegum Sans', cursive;
+        }
+
+        /* OUTDOOR PARK ENVIRONMENT STYLES */
+        .sky-bg {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(180deg, #38bdf8 0%, #7dd3fc 55%, #bae6fd 80%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Grass Hills at the bottom */
+        .grass-hill-1 {
+            position: fixed;
+            bottom: -50px;
+            left: -10%;
+            width: 70vw;
+            height: 220px;
+            background: linear-gradient(180deg, #4ade80 0%, #22c55e 100%);
+            border-radius: 50% 50% 0 0;
+            z-index: 1;
+            pointer-events: none;
+        }
+        .grass-hill-2 {
+            position: fixed;
+            bottom: -60px;
+            right: -10%;
+            width: 75vw;
+            height: 250px;
+            background: linear-gradient(180deg, #22c55e 0%, #15803d 100%);
+            border-radius: 50% 50% 0 0;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* Animated Clouds */
+        .cloud {
+            position: fixed;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50px;
+            pointer-events: none;
+            z-index: 1;
+            animation: move-cloud linear infinite;
+        }
+        .cloud::before, .cloud::after {
+            content: '';
+            position: absolute;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+        }
+
+        @keyframes move-cloud {
+            from { transform: translateX(-200px); }
+            to { transform: translateX(100vw); }
+        }
+
+        /* Floating Balloons */
+        .balloon {
+            position: fixed;
+            width: 45px;
+            height: 55px;
+            border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
+            pointer-events: none;
+            z-index: 2;
+            animation: float-up ease-in-out infinite alternate;
+        }
+        .balloon::after {
+            content: '';
+            position: absolute;
+            bottom: -12px;
+            left: 21px;
+            width: 2px;
+            height: 14px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        @keyframes float-up {
+            0% { transform: translateY(0px) rotate(-5deg); }
+            100% { transform: translateY(-35px) rotate(5deg); }
+        }
+
+        /* Sun Graphic */
+        .sun {
+            position: fixed;
+            top: 25px;
+            right: 40px;
+            width: 90px;
+            height: 90px;
+            background: radial-gradient(circle, #fef08a 30%, #fde047 70%, #facc15 100%);
+            border-radius: 50%;
+            box-shadow: 0 0 40px #fde047;
+            z-index: 1;
+            animation: pulse-sun 4s infinite ease-in-out;
+        }
+        @keyframes pulse-sun {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 40px #fde047; }
+            50% { transform: scale(1.08); box-shadow: 0 0 65px #facc15; }
+        }
+
+        /* Option box hover and tilt animations */
+        .option-box {
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        .option-active-left {
+            border-color: #3b82f6 !important;
+            transform: scale(1.04) rotate(-2deg);
+            box-shadow: 0 20px 35px rgba(59, 130, 246, 0.45);
+        }
+
+        .option-active-right {
+            border-color: #ec4899 !important;
+            transform: scale(1.04) rotate(2deg);
+            box-shadow: 0 20px 35px rgba(236, 72, 153, 0.45);
+        }
+
+        /* Camera mirror effect */
+        .mirror {
+            transform: scaleX(-1);
+        }
+
+        /* Radio waveform equalizer animation */
+        .eq-bar {
+            animation: bounce-eq 0.8s infinite alternate ease-in-out;
+        }
+        .eq-bar:nth-child(2) { animation-delay: 0.2s; }
+        .eq-bar:nth-child(3) { animation-delay: 0.4s; }
+        .eq-bar:nth-child(4) { animation-delay: 0.1s; }
+        .eq-bar:nth-child(5) { animation-delay: 0.5s; }
+
+        @keyframes bounce-eq {
+            0% { height: 15%; }
+            100% { height: 95%; }
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col justify-between p-2 md:p-5 relative overflow-x-hidden">
+
+    <!-- OUTDOOR PARK BACKGROUND DECORATIONS -->
+    <div class="sky-bg"></div>
+    <div class="sun"></div>
+    
+    <!-- Animated Sky Clouds -->
+    <div class="cloud w-32 h-10 top-10 left-0" style="animation-duration: 35s;"></div>
+    <div class="cloud w-48 h-14 top-24 left-10" style="animation-duration: 48s; animation-delay: -15s;"></div>
+    <div class="cloud w-40 h-12 top-6 left-1/3" style="animation-duration: 40s; animation-delay: -8s;"></div>
+
+    <!-- Floating Balloons -->
+    <div class="balloon bg-red-500 top-1/4 left-8" style="animation-duration: 5s;"></div>
+    <div class="balloon bg-yellow-400 top-1/3 right-12" style="animation-duration: 4s; animation-delay: 1s;"></div>
+    <div class="balloon bg-purple-500 top-12 left-1/2" style="animation-duration: 6s; animation-delay: 2s;"></div>
+    <div class="balloon bg-emerald-400 bottom-1/3 left-16" style="animation-duration: 4.5s; animation-delay: 0.5s;"></div>
+
+    <!-- Green Grass Hills -->
+    <div class="grass-hill-1"></div>
+    <div class="grass-hill-2"></div>
+
+    <!-- TOP HEADER: Game Title & Score Dashboard -->
+    <header class="relative z-10 max-w-6xl w-full mx-auto bg-white/95 backdrop-blur-md rounded-3xl p-3 md:p-4 shadow-2xl border-4 border-yellow-300 flex flex-wrap justify-between items-center gap-2">
+        
+        <!-- Logo & Title -->
+        <div class="flex items-center gap-3">
+            <div class="bg-gradient-to-r from-yellow-400 to-orange-400 text-yellow-950 font-header font-extrabold px-4 py-2 rounded-2xl text-xl md:text-2xl shadow-md flex items-center gap-2 transform -rotate-1">
+                <i class="fa-solid fa-ferris-wheel text-2xl text-red-600 animate-spin" style="animation-duration: 12s;"></i>
+                <span>The Fun Park Radio</span>
+            </div>
+            <span id="challengeBadge" class="hidden lg:inline-block bg-indigo-100 text-indigo-700 font-bold px-3 py-1.5 rounded-xl text-xs uppercase tracking-wider border border-indigo-200">
+                Challenge 1: Actions
+            </span>
+        </div>
+
+        <!-- Score & Progress Badges -->
+        <div class="flex items-center gap-3">
+            <!-- Score Counter -->
+            <div class="flex items-center gap-2 bg-emerald-100 border-2 border-emerald-400 px-3.5 py-1.5 rounded-2xl shadow-sm">
+                <i class="fa-solid fa-star text-yellow-500 text-2xl animate-pulse"></i>
+                <div>
+                    <div class="text-[10px] uppercase text-emerald-800 font-black leading-none">Score</div>
+                    <div id="scoreText" class="font-header text-xl md:text-2xl font-bold text-emerald-700 leading-none">0</div>
+                </div>
+            </div>
+            
+            <!-- Progress Counter -->
+            <div class="bg-purple-100 border-2 border-purple-300 px-3.5 py-1.5 rounded-2xl text-center shadow-sm">
+                <div class="text-[10px] uppercase text-purple-700 font-black leading-none">Question</div>
+                <div id="progressText" class="font-header text-lg md:text-xl font-bold text-purple-800 leading-none">1 / 6</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN INTERACTIVE STAGE -->
+    <main class="relative z-10 max-w-6xl w-full mx-auto my-3 flex-grow flex flex-col justify-center gap-3">
+        
+        <!-- THE FUN PARK RADIO PLAYER (AUDIO INTERFACE) -->
+        <div class="bg-gradient-to-r from-rose-500 via-purple-600 to-indigo-600 rounded-3xl p-3 md:p-4 shadow-2xl border-4 border-white text-white flex flex-col sm:flex-row items-center justify-between gap-3">
+            
+            <!-- Vintage Radio Graphic Controls -->
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+                <!-- Radio Speaker Mesh Box -->
+                <button onclick="playQuestionAudio()" class="group relative bg-amber-400 hover:bg-amber-300 active:scale-95 text-amber-950 font-header font-bold px-4 py-3 rounded-2xl shadow-lg transition flex items-center gap-3 border-2 border-amber-200 cursor-pointer">
+                    <!-- Speaker Cone Icon -->
+                    <div class="w-10 h-10 bg-amber-900 rounded-xl flex items-center justify-center text-amber-300 shadow-inner">
+                        <i class="fa-solid fa-radio text-xl group-hover:scale-110 transition"></i>
+                    </div>
+                    <div class="text-left">
+                        <div class="text-xs text-amber-900 uppercase font-black tracking-wider leading-tight">Listen Now</div>
+                        <div class="text-lg leading-none font-extrabold">Play Radio Clip 📻</div>
+                    </div>
+                </button>
+
+                <!-- Equalizer Animated Signal -->
+                <div id="radioEq" class="flex items-end gap-1 h-8 px-2 bg-black/20 rounded-lg border border-white/20">
+                    <div class="eq-bar w-1.5 bg-yellow-300 rounded-full"></div>
+                    <div class="eq-bar w-1.5 bg-green-400 rounded-full"></div>
+                    <div class="eq-bar w-1.5 bg-pink-400 rounded-full"></div>
+                    <div class="eq-bar w-1.5 bg-cyan-300 rounded-full"></div>
+                    <div class="eq-bar w-1.5 bg-yellow-300 rounded-full"></div>
+                </div>
+            </div>
+
+            <!-- Radio Station Display Banner -->
+            <div class="flex items-center gap-2 text-xs md:text-sm font-semibold bg-black/30 px-4 py-2 rounded-xl border border-white/10 w-full sm:w-auto justify-center">
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping mr-1"></span>
+                <span>Tune in: <span id="radioSubtext" class="text-yellow-300 font-bold">"Listen to the park broadcast!"</span></span>
+            </div>
+        </div>
+
+        <!-- PLAY AREA GRID: OPTION A | MAIN PARK ILLUSTRATION & CAMERA | OPTION B -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 items-stretch">
+            
+            <!-- OPTION A (LEFT SIDE - TILT HEAD LEFT) -->
+            <div id="optionABox" class="option-box md:col-span-3 bg-white rounded-3xl p-4 md:p-5 border-4 border-blue-400 shadow-2xl flex flex-col items-center justify-between text-center cursor-pointer min-h-[160px]" onclick="manualSelect('A')">
+                <div class="bg-blue-100 text-blue-800 font-header font-bold text-sm md:text-base px-4 py-1 rounded-full shadow-sm">
+                    👈 OPTION A
+                </div>
+                
+                <div id="optionAEmoji" class="text-5xl md:text-6xl my-2 transform hover:scale-110 transition">🎸</div>
+                
+                <div id="optionAText" class="font-header font-bold text-xl md:text-2xl text-slate-800 leading-tight">
+                    Playing the guitar
+                </div>
+
+                <!-- Tilt Progress Dwell Bar -->
+                <div class="w-full mt-3">
+                    <div id="progressLeft" class="w-full bg-slate-100 h-3.5 rounded-full overflow-hidden border border-slate-200">
+                        <div id="barLeft" class="bg-blue-500 h-full w-0 transition-all duration-75"></div>
+                    </div>
+                    <span class="text-xs text-blue-600 font-bold mt-1 block">
+                        <i class="fa-solid fa-arrow-left mr-1"></i>Tilt Head LEFT
+                    </span>
+                </div>
+            </div>
+
+            <!-- CENTER: ACTIVITY ILLUSTRATION + MINI CAMERA OVERLAY -->
+            <!-- CENTER: ACTIVITY ILLUSTRATION + MINI CAMERA OVERLAY STACKED -->
+            <div class="md:col-span-6 flex flex-col items-center gap-3">
+                
+                <!-- Activity Illustration Display Container (Top) -->
+                <div class="w-full bg-white rounded-3xl p-3 border-4 border-yellow-300 shadow-2xl flex flex-col items-center justify-center overflow-hidden">
+                    <div id="illustrationBox" class="w-full h-48 md:h-56 rounded-2xl bg-gradient-to-b from-sky-200 to-emerald-100 border-2 border-indigo-100 flex items-center justify-center relative overflow-hidden p-2">
+                        <!-- Static SVG Graphic Displayed Here -->
+                        <div id="pictureContainer" class="w-full h-full flex items-center justify-center"></div>
+
+                        <!-- Image Subtitle Badge -->
+                        <div class="absolute bottom-2 left-2 right-2 bg-black/60 backdrop-blur-md text-white font-bold text-xs md:text-sm py-1 px-3 rounded-xl text-center z-10">
+                            <i class="fa-solid fa-image text-yellow-300 mr-1.5"></i>
+                            <span id="questionCaption">Fun Park Activity</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MINI WEBCAM & DETECTOR OVERLAY (Bottom - No Overlap) -->
+                <div class="relative w-full max-w-[260px] h-28 md:h-32 rounded-2xl border-4 border-amber-400 bg-slate-900 shadow-xl overflow-hidden flex items-center justify-center">
+                    <video id="webcam" class="w-full h-full object-cover mirror" autoplay playsinline></video>
+                    <canvas id="faceCanvas" class="absolute inset-0 w-full h-full mirror pointer-events-none"></canvas>
+                    <!-- Detection State Indicator Badge -->
+                    <span id="tiltBadge" class="absolute top-1 bg-black/75 text-yellow-300 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-white/20">
+                        Detecting...
+                    </span>
+                </div>
+
+            </div>
+
+            <!-- OPTION B (RIGHT SIDE - TILT HEAD RIGHT) -->
+            <div id="optionBBox" class="option-box md:col-span-3 bg-white rounded-3xl p-4 md:p-5 border-4 border-pink-400 shadow-2xl flex flex-col items-center justify-between text-center cursor-pointer min-h-[160px]" onclick="manualSelect('B')">
+                <div class="bg-pink-100 text-pink-800 font-header font-bold text-sm md:text-base px-4 py-1 rounded-full shadow-sm">
+                    OPTION B 👉
+                </div>
+                
+                <div id="optionBEmoji" class="text-5xl md:text-6xl my-2 transform hover:scale-110 transition">⚽</div>
+                
+                <div id="optionBText" class="font-header font-bold text-xl md:text-2xl text-slate-800 leading-tight">
+                    He is kicking a ball.
+                </div>
+
+                <!-- Tilt Progress Dwell Bar -->
+                <div class="w-full mt-3">
+                    <div id="progressRight" class="w-full bg-slate-100 h-3.5 rounded-full overflow-hidden border border-slate-200">
+                        <div id="barRight" class="bg-pink-500 h-full w-0 transition-all duration-75"></div>
+                    </div>
+                    <span class="text-xs text-pink-600 font-bold mt-1 block">
+                        Tilt Head RIGHT <i class="fa-solid fa-arrow-right ml-1"></i>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- TRY AGAIN MODAL DIALOG (FOR INCORRECT ANSWERS ONLY) -->
+    <div id="tryAgainModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 md:p-8 max-w-sm w-full shadow-2xl border-4 border-rose-400 text-center transform animate-bounce-short">
+            <div class="w-20 h-20 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center text-4xl mx-auto mb-3 shadow-lg border-4 border-rose-400">
+                ❌
+            </div>
+            <h3 class="font-header text-3xl font-bold mb-2 text-rose-600">Try Again!</h3>
+            <p class="text-slate-600 font-semibold mb-6 text-sm md:text-base">
+                Tilt your head the other way to pick the correct answer!
+            </p>
+            <button onclick="retryCurrentQuestion()" class="w-full bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-400 hover:to-pink-400 active:scale-95 text-white font-header font-bold text-xl py-3 px-6 rounded-2xl shadow-lg border-2 border-rose-200 transition">
+                Try Again 🔄
+            </button>
+        </div>
+    </div>
+
+    <!-- GAME OVER SUMMARY MODAL -->
+    <div id="gameOverModal" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl border-4 border-purple-400 text-center">
+            <div class="text-6xl mb-2">🏆</div>
+            <h2 class="font-header text-3xl md:text-4xl font-extrabold text-purple-900 mb-2">Fun Park Broadcast Complete!</h2>
+            <p class="text-slate-600 font-bold mb-4">You did a fantastic job listening to the radio!</p>
+            
+            <div class="bg-purple-50 rounded-2xl p-4 border-2 border-purple-200 mb-6">
+                <div class="text-sm font-black text-purple-700 uppercase tracking-wide">Final Score</div>
+                <div id="finalScoreText" class="font-header text-4xl font-black text-purple-900 my-1">6 / 6</div>
+                <div id="starRating" class="text-lg font-bold text-amber-500">⭐⭐⭐</div>
+            </div>
+
+            <button onclick="restartGame()" class="w-full bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-300 hover:to-teal-400 active:scale-95 text-white font-header font-bold text-xl py-4 px-6 rounded-2xl shadow-xl border-2 border-emerald-200 transition">
+                Play Again 🔄
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN GAME DATA & ANIMATED CANVAS RENDERER -->
+    <script>
+        /* ==========================================================================
+           STATIC PICTURE ILLUSTRATION GRAPHICS (SVG)
+           ========================================================================== */
+        const activityPictures = {
+            singleBoyBadminton: `
+                <svg viewBox="0 0 400 240" class="w-full h-full max-h-full object-contain">
+                    <defs>
+                        <linearGradient id="skyGrad1" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#7dd3fc"/>
+                            <stop offset="100%" stop-color="#e0f2fe"/>
+                        </linearGradient>
+                        <linearGradient id="grassGrad1" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#4ade80"/>
+                            <stop offset="100%" stop-color="#16a34a"/>
+                        </linearGradient>
+                    </defs>
+                    <!-- Background Park -->
+                    <rect width="400" height="170" fill="url(#skyGrad1)"/>
+                    <rect y="170" width="400" height="70" fill="url(#grassGrad1)"/>
+                    <circle cx="330" cy="45" r="24" fill="#fde047"/>
+                    <!-- Single Boy Badminton Player -->
+                    <!-- Head -->
+                    <circle cx="200" cy="90" r="22" fill="#fca5a5"/>
+                    <path d="M 180 85 Q 200 60 220 85 Z" fill="#451a03"/>
+                    <!-- Body -->
+                    <rect x="184" y="112" width="32" height="46" rx="6" fill="#0284c7"/>
+                    <!-- Legs -->
+                    <rect x="188" y="158" width="10" height="28" fill="#334155"/>
+                    <rect x="202" y="158" width="10" height="28" fill="#334155"/>
+                    <!-- Arm & Racquet -->
+                    <path d="M 216 120 L 255 90" stroke="#fca5a5" stroke-width="7" stroke-linecap="round"/>
+                    <path d="M 255 90 L 285 60" stroke="#475569" stroke-width="4"/>
+                    <ellipse cx="295" cy="48" rx="16" ry="20" fill="none" stroke="#ef4444" stroke-width="3"/>
+                    <!-- Shuttlecock Flying Overhead -->
+                    <circle cx="150" cy="55" r="6" fill="#ffffff"/>
+                    <path d="M 150 55 L 138 45 L 140 58 Z" fill="#f43f5e"/>
+                </svg>`,
+            badminton: `
+                <svg viewBox="0 0 400 240" class="w-full h-full max-h-full object-contain">
+                    <defs>
+                        <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#7dd3fc"/>
+                            <stop offset="100%" stop-color="#e0f2fe"/>
+                        </linearGradient>
+                        <linearGradient id="grassGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#4ade80"/>
+                            <stop offset="100%" stop-color="#16a34a"/>
+                        </linearGradient>
+                    </defs>
+                    <!-- Background Park -->
+                    <rect width="400" height="170" fill="url(#skyGrad)"/>
+                    <rect y="170" width="400" height="70" fill="url(#grassGrad)"/>
+                    <circle cx="340" cy="40" r="25" fill="#fde047"/>
+                    <!-- Net -->
+                    <rect x="198" y="120" width="4" height="60" fill="#ffffff"/>
+                    <line x1="198" y1="130" x2="400" y2="130" stroke="#ffffff" stroke-width="2" stroke-dasharray="4,4"/>
+                    <!-- Badminton Player 1 (Left) -->
+                    <!-- Head -->
+                    <circle cx="90" cy="90" r="18" fill="#fca5a5"/>
+                    <path d="M 75 85 Q 90 65 105 85 Z" fill="#451a03"/>
+                    <!-- Body -->
+                    <rect x="76" y="108" width="28" height="42" rx="6" fill="#0284c7"/>
+                    <!-- Legs -->
+                    <rect x="80" y="150" width="8" height="25" fill="#334155"/>
+                    <rect x="92" y="150" width="8" height="25" fill="#334155"/>
+                    <!-- Arm & Racquet -->
+                    <path d="M 100 115 L 135 85" stroke="#fca5a5" stroke-width="6" stroke-linecap="round"/>
+                    <path d="M 135 85 L 165 55" stroke="#475569" stroke-width="4"/>
+                    <ellipse cx="175" cy="45" rx="14" ry="18" fill="none" stroke="#ef4444" stroke-width="3"/>
+
+                    <!-- Badminton Player 2 (Right Side) -->
+                    <!-- Head -->
+                    <circle cx="310" cy="90" r="18" fill="#fde047"/>
+                    <path d="M 295 85 Q 310 65 325 85 Z" fill="#9a3412"/>
+                    <!-- Body -->
+                    <rect x="296" y="108" width="28" height="42" rx="6" fill="#ec4899"/>
+                    <!-- Legs -->
+                    <rect x="300" y="150" width="8" height="25" fill="#334155"/>
+                    <rect x="312" y="150" width="8" height="25" fill="#334155"/>
+                    <!-- Arm & Racquet -->
+                    <path d="M 300 115 L 265 90" stroke="#fde047" stroke-width="6" stroke-linecap="round"/>
+                    <path d="M 265 90 L 235 65" stroke="#475569" stroke-width="4"/>
+                    <ellipse cx="225" cy="55" rx="14" ry="18" fill="none" stroke="#3b82f6" stroke-width="3"/>
+
+                    <!-- Shuttlecock Flying In Middle -->
+                    <circle cx="200" cy="65" r="6" fill="#ffffff"/>
+                    <path d="M 200 65 L 212 55 L 215 68 Z" fill="#f43f5e"/>
+                </svg>`,
+            singingStage: `
+                <svg viewBox="0 0 400 240" class="w-full h-full max-h-full object-contain">
+                    <rect width="400" height="240" fill="#1e1b4b" rx="16"/>
+                    <!-- Stage Lights -->
+                    <polygon points="50,0 120,240 220,240" fill="rgba(250, 204, 21, 0.3)"/>
+                    <polygon points="350,0 280,240 180,240" fill="rgba(56, 189, 248, 0.3)"/>
+                    <rect y="185" width="400" height="55" fill="#312e81"/>
+                    <!-- Musical Notes Floating -->
+                    <text x="70" y="70" font-size="28" fill="#fde047">🎤</text>
+                    <text x="310" y="80" font-size="32" fill="#38bdf8">🎵</text>
+                    <text x="60" y="150" font-size="26" fill="#f43f5e">🎶</text>
+                    <!-- Singer with Microphone -->
+                    <g transform="translate(175, 65)">
+                        <circle cx="25" cy="20" r="16" fill="#fde047"/>
+                        <rect x="12" y="36" width="26" height="45" fill="#ec4899" rx="6"/>
+                        <line x1="18" y1="81" x2="15" y2="115" stroke="#fde047" stroke-width="6"/>
+                        <line x1="32" y1="81" x2="35" y2="115" stroke="#fde047" stroke-width="6"/>
+                        <!-- Mic Stand -->
+                        <line x1="42" y1="45" x2="42" y2="115" stroke="#94a3b8" stroke-width="4"/>
+                        <circle cx="42" cy="40" r="6" fill="#475569"/>
+                    </g>
+                </svg>`,
+            jumpingTrampoline: `
+                <svg viewBox="0 0 400 240" class="w-full h-full max-h-full object-contain">
+                    <rect width="400" height="170" fill="#e0f2fe"/>
+                    <rect y="170" width="400" height="70" fill="#4ade80"/>
+                    <!-- Trampoline Base -->
+                    <ellipse cx="200" cy="180" rx="110" ry="22" fill="#1e293b"/>
+                    <ellipse cx="200" cy="180" rx="100" ry="18" fill="#0284c7"/>
+                    <line x1="100" y1="180" x2="90" y2="210" stroke="#475569" stroke-width="5"/>
+                    <line x1="300" y1="180" x2="310" y2="210" stroke="#475569" stroke-width="5"/>
+                    <!-- Boy Jumping High -->
+                    <g transform="translate(175, 30)">
+                        <circle cx="25" cy="20" r="16" fill="#fca5a5"/>
+                        <rect x="12" y="36" width="26" height="40" fill="#f59e0b" rx="6"/>
+                        <!-- Arms Up in air -->
+                        <path d="M 12 40 L -8 20" stroke="#fca5a5" stroke-width="6" stroke-linecap="round"/>
+                        <path d="M 38 40 L 58 20" stroke="#fca5a5" stroke-width="6" stroke-linecap="round"/>
+                        <!-- Legs bent high -->
+                        <path d="M 18 76 L 5 95 L 20 110" stroke="#3b82f6" stroke-width="6" stroke-linecap="round" fill="none"/>
+                        <path d="M 32 76 L 45 95 L 30 110" stroke="#3b82f6" stroke-width="6" stroke-linecap="round" fill="none"/>
+                    </g>
+                    <!-- Motion Lines -->
+                    <path d="M 185 155 Q 200 140 215 155" stroke="#0284c7" stroke-width="3" fill="none"/>
+                </svg>`,
+            kickingBallPark: `
+                <svg viewBox="0 0 400 240" class="w-full h-full max-h-full object-contain">
+                    <rect width="400" height="150" fill="#bae6fd"/>
+                    <rect y="150" width="400" height="90" fill="#22c55e"/>
+                    <!-- Soccer Goal Net -->
+                    <rect x="270" y="70" width="110" height="90" fill="none" stroke="#ffffff" stroke-width="3"/>
+                    <path d="M 270 70 L 290 50 L 390 50 L 380 70" fill="none" stroke="#ffffff" stroke-width="2"/>
+                    <!-- Player kicking ball -->
+                    <g transform="translate(90, 75)">
+                        <circle cx="25" cy="20" r="16" fill="#fde047"/>
+                        <rect x="12" y="36" width="26" height="40" fill="#ef4444" rx="6"/>
+                        <!-- Kicking Leg -->
+                        <line x1="18" y1="76" x2="10" y2="110" stroke="#1e293b" stroke-width="6"/>
+                        <path d="M 32 76 L 65 90" stroke="#1e293b" stroke-width="6" stroke-linecap="round"/>
+                    </g>
+                    <!-- Soccer ball in motion -->
+                    <circle cx="185" cy="160" r="14" fill="#ffffff" stroke="#000000" stroke-width="2"/>
+                    <path d="M 140 160 Q 160 155 170 160" stroke="#ffffff" stroke-width="3" fill="none" stroke-dasharray="2,2"/>
+                </svg>`,
+            guitar: `
+                <svg viewBox="0 0 400 240" class="w-full h-full max-h-full object-contain">
+                    <rect width="400" height="240" fill="#fef3c7" rx="16"/>
+                    <circle cx="200" cy="120" r="90" fill="#fde047" opacity="0.4"/>
+                    <!-- Music Notes -->
+                    <text x="50" y="70" font-size="32" fill="#d97706">🎵</text>
+                    <text x="320" y="80" font-size="36" fill="#d97706">🎶</text>
+                    <text x="80" y="190" font-size="28" fill="#b45309">🎼</text>
+                    <!-- Acoustic Guitar -->
+                    <g transform="translate(130, 60) rotate(15)">
+                        <!-- Guitar Body -->
+                        <path d="M 40 40 C 0 10, -20 70, 20 100 C -20 130, 0 190, 40 160 C 80 190, 100 130, 60 100 C 100 70, 80 10, 40 40 Z" fill="#ea580c" stroke="#7c2d12" stroke-width="4"/>
+                        <!-- Sound Hole -->
+                        <circle cx="40" cy="100" r="18" fill="#451a03"/>
+                        <circle cx="40" cy="100" r="22" fill="none" stroke="#fef08a" stroke-width="2"/>
+                        <!-- Neck -->
+                        <rect x="33" y="-50" width="14" height="90" fill="#78350f"/>
+                        <rect x="28" y="-65" width="24" height="18" rx="3" fill="#451a03"/>
+                        <!-- Strings -->
+                        <line x1="36" y1="-60" x2="36" y2="135" stroke="#fef08a" stroke-width="1.5"/>
+                        <line x1="40" y1="-60" x2="40" y2="135" stroke="#fef08a" stroke-width="1.5"/>
+                        <line x1="44" y1="-60" x2="44" y2="135" stroke="#fef08a" stroke-width="1.5"/>
+                    </g>
+                </svg>`,
+            basketball: `
+                <svg viewBox="0 0 400 240" class="w-full h-full max-h-full object-contain">
+                    <!-- Outdoor Court -->
+                    <rect width="400" height="150" fill="#60a5fa"/>
+                    <rect y="150" width="400" height="90" fill="#ea580c"/>
+                    <!-- Court Key Line -->
+                    <path d="M 120 240 A 80 80 0 0 1 280 240" fill="none" stroke="#ffffff" stroke-width="4"/>
+                    <!-- Basketball Hoop -->
+                    <rect x="330" y="40" width="8" height="130" fill="#64748b"/>
+                    <rect x="290" y="30" width="45" height="35" fill="#ffffff" stroke="#dc2626" stroke-width="3"/>
+                    <rect x="270" y="55" width="25" height="5" fill="#ef4444"/>
+                    <!-- Net -->
+                    <path d="M 270 60 L 275 85 L 290 85 L 295 60 Z" fill="none" stroke="#ffffff" stroke-width="2" stroke-dasharray="3,3"/>
+                    <!-- Basketball -->
+                    <circle cx="160" cy="90" r="22" fill="#f97316" stroke="#431407" stroke-width="3"/>
+                    <path d="M 138 90 Q 160 70 182 90" fill="none" stroke="#431407" stroke-width="2"/>
+                    <line x1="160" y1="68" x2="160" y2="112" stroke="#431407" stroke-width="2"/>
+                </svg>`,
+            stageDance: `
+                <svg viewBox="0 0 400 240" class="w-full h-full max-h-full object-contain">
+                    <rect width="400" height="240" fill="#0f172a" rx="16"/>
+                    <!-- Spotlights -->
+                    <polygon points="60,0 150,240 230,240" fill="rgba(244, 63, 94, 0.35)"/>
+                    <polygon points="340,0 250,240 170,240" fill="rgba(168, 85, 247, 0.35)"/>
+                    <polygon points="200,0 140,240 260,240" fill="rgba(250, 204, 21, 0.25)"/>
+                    <!-- Stage Floor -->
+                    <rect y="190" width="400" height="50" fill="#1e293b"/>
+                    
+                    <!-- Dancer 1 (Left - Pink Dress) -->
+                    <g transform="translate(100, 75)">
+                        <circle cx="30" cy="20" r="18" fill="#701a75"/>
+                        <circle cx="30" cy="25" r="14" fill="#fbcfe8"/>
+                        <path d="M 30 40 L 10 85 L 50 85 Z" fill="#ec4899"/>
+                        <path d="M 20 45 L -5 25" stroke="#fbcfe8" stroke-width="5" stroke-linecap="round"/>
+                        <path d="M 40 45 L 60 25" stroke="#fbcfe8" stroke-width="5" stroke-linecap="round"/>
+                        <line x1="22" y1="85" x2="18" y2="115" stroke="#fbcfe8" stroke-width="5"/>
+                        <line x1="38" y1="85" x2="44" y2="115" stroke="#fbcfe8" stroke-width="5"/>
+                    </g>
+
+                    <!-- Dancer 2 (Center Main - Yellow/Purple Outfit) -->
+                    <g transform="translate(170, 65)">
+                        <circle cx="30" cy="20" r="20" fill="#fde047"/>
+                        <circle cx="30" cy="23" r="15" fill="#fed7aa"/>
+                        <path d="M 30 38 L 5 90 L 55 90 Z" fill="#a855f7"/>
+                        <path d="M 20 48 L -8 28" stroke="#fed7aa" stroke-width="6" stroke-linecap="round"/>
+                        <path d="M 40 48 L 68 22" stroke="#fed7aa" stroke-width="6" stroke-linecap="round"/>
+                        <line x1="20" y1="90" x2="14" y2="125" stroke="#fed7aa" stroke-width="6"/>
+                        <line x1="40" y1="90" x2="48" y2="125" stroke="#fed7aa" stroke-width="6"/>
+                    </g>
+
+                    <!-- Dancer 3 (Right - Blue Outfit) -->
+                    <g transform="translate(240, 75)">
+                        <circle cx="30" cy="20" r="18" fill="#1e3a8a"/>
+                        <circle cx="30" cy="25" r="14" fill="#fde047"/>
+                        <path d="M 30 40 L 10 85 L 50 85 Z" fill="#3b82f6"/>
+                        <path d="M 20 45 L 0 25" stroke="#fde047" stroke-width="5" stroke-linecap="round"/>
+                        <path d="M 40 45 L 65 30" stroke="#fde047" stroke-width="5" stroke-linecap="round"/>
+                        <line x1="22" y1="85" x2="16" y2="115" stroke="#fde047" stroke-width="5"/>
+                        <line x1="38" y1="85" x2="42" y2="115" stroke="#fde047" stroke-width="5"/>
+                    </g>
+
+                    <text x="30" y="50" font-size="22">✨</text>
+                    <text x="350" y="60" font-size="22">⭐</text>
+                    <text x="190" y="45" font-size="20">🎶</text>
+                </svg>`,
+            brotherBadminton: `
+                <svg viewBox="0 0 400 240" class="w-full h-full max-h-full object-contain">
+                    <rect width="400" height="160" fill="#bae6fd"/>
+                    <rect y="160" width="400" height="80" fill="#4ade80"/>
+                    <!-- Badminton Net -->
+                    <line x1="200" y1="120" x2="200" y2="185" stroke="#ffffff" stroke-width="4"/>
+                    <rect x="200" y="125" width="200" height="30" fill="none" stroke="#ffffff" stroke-width="1.5" stroke-dasharray="3,3"/>
+                    <!-- Sister -->
+                    <circle cx="80" cy="110" r="14" fill="#fde047"/>
+                    <rect x="70" y="124" width="20" height="35" fill="#ec4899" rx="4"/>
+                    <!-- Brother -->
+                    <circle cx="320" cy="110" r="14" fill="#fde047"/>
+                    <rect x="310" y="124" width="20" height="35" fill="#3b82f6" rx="4"/>
+                    <!-- Shuttlecock -->
+                    <circle cx="190" cy="95" r="5" fill="#ffffff"/>
+                    <path d="M 190 95 L 178 88 L 180 100 Z" fill="#f43f5e"/>
+                </svg>`,
+            schoolYard: `
+                <svg viewBox="0 0 400 240" class="w-full h-full max-h-full object-contain">
+                    <rect width="400" height="240" fill="#c7d2fe" rx="16"/>
+                    <!-- School Building -->
+                    <polygon points="40,60 200,15 360,60" fill="#4338ca"/>
+                    <rect x="50" y="60" width="300" height="130" fill="#818cf8"/>
+                    <!-- Windows -->
+                    <rect x="80" y="85" width="30" height="35" fill="#fef08a" rx="3"/>
+                    <rect x="140" y="85" width="30" height="35" fill="#fef08a" rx="3"/>
+                    <rect x="230" y="85" width="30" height="35" fill="#fef08a" rx="3"/>
+                    <rect x="290" y="85" width="30" height="35" fill="#fef08a" rx="3"/>
+                    <!-- Door -->
+                    <rect x="180" y="135" width="40" height="55" fill="#312e81" rx="4"/>
+                    <!-- School Yard Ground -->
+                    <rect y="185" width="400" height="55" fill="#34d399"/>
+                    <!-- Children playing -->
+                    <circle cx="120" cy="170" r="8" fill="#fde047"/>
+                    <circle cx="280" cy="170" r="8" fill="#fde047"/>
+                    <circle cx="200" cy="165" r="7" fill="#fb923c"/>
+                </svg>`
+        };
+
+        function showPicture(key) {
+            const container = document.getElementById('pictureContainer');
+            if (container && activityPictures[key]) {
+                container.innerHTML = activityPictures[key];
+            }
+        }
+
+        /* ==========================================================================
+           QUIZ DATASET
+           ========================================================================== */
+        const quizData = [
+            // Challenge 1: Action Identification (Varied order so target words do not repeat back-to-back)
+            {
+                id: 1,
+                challenge: "Challenge 1: What are they doing?",
+                audioText: "He is playing badminton.",
+                caption: "Look at the boy!",
+                animKey: "singleBoyBadminton",
+                optionA: { label: "He is playing badminton.", emoji: "🏸" },
+                optionB: { label: "He is kicking a ball.", emoji: "⚽" },
+                correct: "A"
+            },
+            {
+                id: 2,
+                challenge: "Challenge 1: What are they doing?",
+                audioText: "She is playing the guitar.",
+                caption: "Listen to the music!",
+                animKey: "guitar",
+                optionA: { label: "She is singing.", emoji: "🎤" },
+                optionB: { label: "She is playing the guitar.", emoji: "🎸" },
+                correct: "B"
+            },
+            {
+                id: 3,
+                challenge: "Challenge 1: What are they doing?",
+                audioText: "They are dancing.",
+                caption: "Look at the dancers on stage!",
+                animKey: "stageDance",
+                optionA: { label: "They are dancing.", emoji: "💃" },
+                optionB: { label: "They are jumping.", emoji: "🦘" },
+                correct: "A"
+            },
+            // Challenge 2: Listen for Details! (Interleaved so vocabulary does not repeat consecutively)
+            {
+                id: 4,
+                challenge: "Challenge 2: Listen for Details!",
+                audioText: "Look at the boy on the trampoline. He is jumping very high!",
+                caption: "What is the boy doing on the trampoline?",
+                animKey: "jumpingTrampoline",
+                optionA: { label: "He is dancing.", emoji: "💃" },
+                optionB: { label: "He is jumping.", emoji: "🦘" },
+                correct: "B"
+            },
+            {
+                id: 5,
+                challenge: "Challenge 2: Listen for Details!",
+                audioText: "Where is the boy kicking a ball? He is kicking a ball in the park.",
+                caption: "Where is the boy kicking a ball?",
+                animKey: "kickingBallPark",
+                optionA: { label: "In the park", emoji: "🌳" },
+                optionB: { label: "At home in the bedroom", emoji: "🛏️" },
+                correct: "A"
+            },
+            {
+                id: 6,
+                challenge: "Challenge 2: Listen for Details!",
+                audioText: "Look at the girl on stage. She is singing a song loudly!",
+                caption: "What is the girl doing on the stage?",
+                animKey: "singingStage",
+                optionA: { label: "She is singing.", emoji: "🎤" },
+                optionB: { label: "She is playing the guitar.", emoji: "🎸" },
+                correct: "A"
+            },
+            {
+                id: 7,
+                challenge: "Challenge 2: Listen for Details!",
+                audioText: "Who is she playing badminton with? She is playing with her brother.",
+                caption: "Who is she playing badminton with?",
+                animKey: "brotherBadminton",
+                optionA: { label: "With her teacher", emoji: "👩‍🏫" },
+                optionB: { label: "With her brother", emoji: "👦" },
+                correct: "B"
+            },
+            {
+                id: 8,
+                challenge: "Challenge 2: Listen for Details!",
+                audioText: "Look at the girl near the stage. She is dancing!",
+                caption: "What is the girl doing near the stage?",
+                animKey: "stageDance",
+                optionA: { label: "She is dancing.", emoji: "💃" },
+                optionB: { label: "She is singing.", emoji: "🎤" },
+                correct: "A"
+            },
+            {
+                id: 9,
+                challenge: "Challenge 2: Listen for Details!",
+                audioText: "Where are they playing badminton? They are playing in the badminton court.",
+                caption: "Where are they playing badminton?",
+                animKey: "badminton",
+                optionA: { label: "In the badminton court", emoji: "🏸" },
+                optionB: { label: "Inside the classroom", emoji: "🚪" },
+                correct: "A"
+            }
+        ];
+
+        /* ==========================================================================
+           GAME STATE & LOGIC
+           ========================================================================== */
+        let currentQuestionIdx = 0;
+        let score = 0;
+        let isQuestionActive = false;
+        let activeTiltDirection = null; // 'LEFT', 'RIGHT', or null
+        const HOLD_DURATION_MS = 3500; // Increased to 3.5 seconds for decision time
+        let currentProgressMs = 0;
+        let speechSynth = window.speechSynthesis;
+
+        /* DOM References */
+        let webcamElement = null;
+        let canvasElement = null;
+        let canvasCtx = null;
+        let tiltBadge = null;
+
+        let optionABox = null;
+        let optionBBox = null;
+        let barLeft = null;
+        let barRight = null;
+
+        /* Initialize Game on Window Load (Ensures DOM is ready) */
+        window.addEventListener('load', () => {
+            webcamElement = document.getElementById('webcam');
+            canvasElement = document.getElementById('faceCanvas');
+            if (canvasElement) {
+                canvasCtx = canvasElement.getContext('2d');
+            }
+            tiltBadge = document.getElementById('tiltBadge');
+
+            optionABox = document.getElementById('optionABox');
+            optionBBox = document.getElementById('optionBBox');
+            barLeft = document.getElementById('barLeft');
+            barRight = document.getElementById('barRight');
+
+            loadQuestion(currentQuestionIdx);
+            initMediaPipeFaceMesh();
+        });
+
+        function loadQuestion(idx) {
+            const q = quizData[idx];
+            isQuestionActive = true;
+            resetTiltState();
+
+            // Update UI Counters & Header
+            document.getElementById('challengeBadge').innerText = q.challenge;
+            document.getElementById('progressText').innerText = `${idx + 1} / ${quizData.length}`;
+            document.getElementById('scoreText').innerText = score;
+
+            // Render Static Picture Illustration & Subtitles
+            showPicture(q.animKey);
+            document.getElementById('questionCaption').innerText = q.caption;
+            document.getElementById('radioSubtext').innerText = `"${q.audioText}"`;
+
+            // Option A
+            document.getElementById('optionAText').innerText = q.optionA.label;
+            document.getElementById('optionAEmoji').innerText = q.optionA.emoji;
+
+            // Option B
+            document.getElementById('optionBText').innerText = q.optionB.label;
+            document.getElementById('optionBEmoji').innerText = q.optionB.emoji;
+        }
+
+        /* Radio Audio Synthesis (Speech Utterance tailored for Year 3 ESL) */
+        function playQuestionAudio() {
+            if (!speechSynth) return;
+            speechSynth.cancel();
+
+            const text = quizData[currentQuestionIdx].audioText;
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.85; // Slower, clearer speed for Year 3 pupils
+            utterance.pitch = 1.1;
+            utterance.lang = 'en-US';
+
+            speechSynth.speak(utterance);
+        }
+
+        /* Tilt Input Handler with Hold Dwell Bar */
+        function processTiltInput(direction) {
+            if (!isQuestionActive) return;
+
+            if (direction !== activeTiltDirection) {
+                activeTiltDirection = direction;
+                currentProgressMs = 0;
+                updateProgressBar(0, direction);
+
+                if (direction === 'LEFT') {
+                    optionABox.classList.add('option-active-left');
+                    optionBBox.classList.remove('option-active-right');
+                    playSfx('tilt');
+                } else if (direction === 'RIGHT') {
+                    optionBBox.classList.add('option-active-right');
+                    optionABox.classList.remove('option-active-left');
+                    playSfx('tilt');
+                } else {
+                    optionABox.classList.remove('option-active-left');
+                    optionBBox.classList.remove('option-active-right');
+                }
+            } else if (direction !== null) {
+                currentProgressMs += 100;
+                const percent = Math.min(100, (currentProgressMs / HOLD_DURATION_MS) * 100);
+                updateProgressBar(percent, direction);
+
+                if (currentProgressMs >= HOLD_DURATION_MS) {
+                    const selectedValue = direction === 'LEFT' ? 'A' : 'B';
+                    submitAnswer(selectedValue);
+                }
+            }
+        }
+
+        function updateProgressBar(percent, direction) {
+            if (direction === 'LEFT') {
+                barLeft.style.width = `${percent}%`;
+                barRight.style.width = '0%';
+            } else if (direction === 'RIGHT') {
+                barRight.style.width = `${percent}%`;
+                barLeft.style.width = '0%';
+            } else {
+                barLeft.style.width = '0%';
+                barRight.style.width = '0%';
+            }
+        }
+
+        function resetTiltState() {
+            activeTiltDirection = null;
+            currentProgressMs = 0;
+            updateProgressBar(0, null);
+            optionABox.classList.remove('option-active-left');
+            optionBBox.classList.remove('option-active-right');
+            tiltBadge.innerText = 'CENTER';
+            tiltBadge.className = 'absolute top-1 bg-black/75 text-yellow-300 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-white/20';
+        }
+
+        function manualSelect(choice) {
+            if (!isQuestionActive) return;
+            submitAnswer(choice);
+        }
+
+        function submitAnswer(chosenOption) {
+            isQuestionActive = false;
+            resetTiltState();
+
+            const currentQ = quizData[currentQuestionIdx];
+            const isCorrect = chosenOption === currentQ.correct;
+
+            if (isCorrect) {
+                score++;
+                document.getElementById('scoreText').innerText = score;
+                playSfx('bellCorrect');
+                triggerConfetti();
+
+                // Automatically proceed to next question after short delay
+                setTimeout(() => {
+                    currentQuestionIdx++;
+                    if (currentQuestionIdx < quizData.length) {
+                        loadQuestion(currentQuestionIdx);
+                    } else {
+                        showGameOver();
+                    }
+                }, 1200);
+            } else {
+                playSfx('buzzerWrong');
+                document.getElementById('tryAgainModal').classList.remove('hidden');
+            }
+        }
+
+        function retryCurrentQuestion() {
+            document.getElementById('tryAgainModal').classList.add('hidden');
+            isQuestionActive = true;
+            resetTiltState();
+        }
+
+        function triggerConfetti() {
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 90,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+        }
+
+        function showGameOver() {
+            const gameOverModal = document.getElementById('gameOverModal');
+            document.getElementById('finalScoreText').innerText = `${score} / ${quizData.length}`;
+            
+            const starElem = document.getElementById('starRating');
+            if (score === quizData.length) starElem.innerText = '⭐⭐⭐ (Park Champion!)';
+            else if (score >= 4) starElem.innerText = '⭐⭐ (Great Job!)';
+            else starElem.innerText = '⭐ (Keep Practicing!)';
+
+            gameOverModal.classList.remove('hidden');
+            playSfx('bellCorrect');
+            triggerConfetti();
+        }
+
+        function restartGame() {
+            score = 0;
+            currentQuestionIdx = 0;
+            document.getElementById('gameOverModal').classList.add('hidden');
+            loadQuestion(0);
+        }
+
+        /* ==========================================================================
+           MEDIAPIPE COMPUTER VISION & MIRRORED TILT CORRECTION
+           ========================================================================== */
+        let faceMesh;
+        let camera;
+
+        function initMediaPipeFaceMesh() {
+            faceMesh = new FaceMesh({
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+            });
+
+            faceMesh.setOptions({
+                maxNumFaces: 1,
+                refineLandmarks: true,
+                minDetectionConfidence: 0.6,
+                minTrackingConfidence: 0.6
+            });
+
+            faceMesh.onResults(onFaceMeshResults);
+
+            camera = new Camera(webcamElement, {
+                onFrame: async () => {
+                    await faceMesh.send({ image: webcamElement });
+                },
+                width: 320,
+                height: 240
+            });
+
+            camera.start().catch(err => {
+                console.error("Camera access failed: ", err);
+                tiltBadge.innerText = 'NO CAM';
+                tiltBadge.className = 'absolute top-1 bg-red-600 text-white font-bold text-[10px] px-2.5 py-0.5 rounded-full';
+            });
+        }
+
+        function onFaceMeshResults(results) {
+            canvasElement.width = webcamElement.videoWidth;
+            canvasElement.height = webcamElement.videoHeight;
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+
+            if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+                const landmarks = results.multiFaceLandmarks[0];
+
+                // Face Landmarks: 263 (Left eye outer), 33 (Right eye outer)
+                const leftEye = landmarks[263];
+                const rightEye = landmarks[33];
+
+                // Calculate angle between eyes
+                const deltaY = leftEye.y - rightEye.y;
+                const deltaX = leftEye.x - rightEye.x;
+                
+                // Raw angle computation in degrees
+                let angleDeg = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
+
+                // Draw face tracking dots
+                canvasCtx.fillStyle = '#facc15';
+                canvasCtx.beginPath();
+                canvasCtx.arc(leftEye.x * canvasElement.width, leftEye.y * canvasElement.height, 4, 0, 2 * Math.PI);
+                canvasCtx.arc(rightEye.x * canvasElement.width, rightEye.y * canvasElement.height, 4, 0, 2 * Math.PI);
+                canvasCtx.fill();
+
+                const TILT_THRESHOLD = 9.5; 
+
+                if (angleDeg > TILT_THRESHOLD) {
+                    // Physical Tilt LEFT -> Select OPTION A
+                    tiltBadge.innerText = 'LEFT (A)';
+                    tiltBadge.className = 'absolute top-1 bg-blue-600 text-white font-black text-[10px] px-2.5 py-0.5 rounded-full border border-white/40';
+                    processTiltInput('LEFT');
+                } else if (angleDeg < -TILT_THRESHOLD) {
+                    // Physical Tilt RIGHT -> Select OPTION B
+                    tiltBadge.innerText = 'RIGHT (B)';
+                    tiltBadge.className = 'absolute top-1 bg-pink-600 text-white font-black text-[10px] px-2.5 py-0.5 rounded-full border border-white/40';
+                    processTiltInput('RIGHT');
+                } else {
+                    // Center / Neutral Head Position
+                    tiltBadge.innerText = 'CENTER';
+                    tiltBadge.className = 'absolute top-1 bg-slate-900 text-yellow-300 font-black text-[10px] px-2.5 py-0.5 rounded-full border border-white/20';
+                    processTiltInput(null);
+                }
+            } else {
+                processTiltInput(null);
+            }
+            canvasCtx.restore();
+        }
+
+        function playSfx(type) {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                if (type === 'tilt') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(440, ctx.currentTime);
+                    gain.gain.setValueAtTime(0.05, ctx.currentTime);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.1);
+                } else if (type === 'bellCorrect') {
+                    // Bright Bell Chime Sound
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+                    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.12); // A5
+                    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.5);
+                } else if (type === 'buzzerWrong') {
+                    // Soft Wrong Buzzer Sound
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(180, ctx.currentTime);
+                    osc.frequency.setValueAtTime(140, ctx.currentTime + 0.15);
+                    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.35);
+                }
+            } catch (e) {
+                // Audio context handling fallback
+            }
+        }
+    </script>
+</body>
+</html>
